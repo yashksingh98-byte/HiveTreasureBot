@@ -5,7 +5,7 @@ integrations = ["discord:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["cmake"]
+packages = ["cmake", "python3", "gnumake", "gcc"]
 
 [workflows]
 runButton = "Project"
