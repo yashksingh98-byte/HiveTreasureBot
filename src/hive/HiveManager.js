@@ -46,10 +46,15 @@ class HiveManagerSingleton {
       });
 
       return new Promise((resolve, reject) => {
+        let resolved = false;
+        
         const connectionTimeout = setTimeout(() => {
+          if (resolved) return;
           const session = this.activeSessions.get(sessionId);
           if (session && session.status === 'connecting') {
+            resolved = true;
             console.log(`⏱️ Connection timeout for session ${sessionId}`);
+            console.log(`⚠️ The Hive server may be blocking bot connections or requires actual Minecraft client.`);
             if (client) {
               try {
                 client.disconnect();
@@ -58,11 +63,21 @@ class HiveManagerSingleton {
               }
             }
             this.activeSessions.delete(sessionId);
-            reject(new Error('Connection timeout - Could not connect to Hive server. This may be a network issue or server unavailability.'));
+            reject(new Error('Unable to connect to Hive server. The server may only accept connections from official Minecraft clients.'));
           }
-        }, 60000);
+        }, 90000);
+
+        client.on('connect', () => {
+          console.log('✅ TCP connection established to Hive');
+        });
+
+        client.on('login', () => {
+          console.log('✅ Login packet sent');
+        });
         
         client.on('join', () => {
+          if (resolved) return;
+          resolved = true;
           clearTimeout(connectionTimeout);
           console.log(`✅ Joined Hive server as ${username}`);
           const session = this.activeSessions.get(sessionId);
@@ -73,8 +88,10 @@ class HiveManagerSingleton {
         });
 
         client.on('spawn', () => {
+          if (resolved) return;
+          resolved = true;
           clearTimeout(connectionTimeout);
-          console.log(`✅ Connected to Hive as ${username}`);
+          console.log(`✅ Spawned on Hive as ${username}`);
           const session = this.activeSessions.get(sessionId);
           if (session) {
             session.status = 'connected';
@@ -87,9 +104,18 @@ class HiveManagerSingleton {
           resolve({ sessionId, status: 'connected', mode: 'live' });
         });
 
+        client.on('kick', (reason) => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(connectionTimeout);
+          console.error(`❌ Kicked from server: ${JSON.stringify(reason)}`);
+          this.activeSessions.delete(sessionId);
+          reject(new Error(`Kicked from server: ${reason.message || JSON.stringify(reason)}`));
+        });
+
         client.on('disconnect', (packet) => {
           clearTimeout(connectionTimeout);
-          console.log('Disconnected:', packet.message);
+          console.log('Disconnected:', packet?.message || 'Unknown reason');
           const session = this.activeSessions.get(sessionId);
           if (session) {
             session.status = 'disconnected';
@@ -102,8 +128,10 @@ class HiveManagerSingleton {
         });
 
         client.on('error', (error) => {
+          if (resolved) return;
+          resolved = true;
           clearTimeout(connectionTimeout);
-          console.error('Client error:', error);
+          console.error('❌ Client error:', error.message);
           if (client) {
             try {
               client.disconnect();
@@ -111,6 +139,10 @@ class HiveManagerSingleton {
           }
           this.activeSessions.delete(sessionId);
           reject(new Error(`Connection error: ${error.message}`));
+        });
+
+        client.on('close', () => {
+          console.log('Connection closed');
         });
       });
     } catch (error) {

@@ -84,44 +84,48 @@ export default {
     try {
       const result = await hiveManager.createCustomServer(username, null, defaultSettings, false);
       
-      await interaction.editReply({
-        content: `✅ **Custom Server Session Created!**\n\n` +
-                 `**Session ID:** \`${result.sessionId}\`\n` +
-                 `**Username:** ${username}\n` +
-                 `**Map:** ${map}\n` +
-                 `**Private:** ${isPrivate ? 'Yes' : 'No'}\n` +
-                 `**Status:** ${result.status}\n\n` +
-                 `Use this session ID with other commands:\n` +
-                 `• \`/settings ${result.sessionId}\` - Modify game settings\n` +
-                 `• \`/invite ${result.sessionId} <player>\` - Invite players\n` +
-                 `• \`/setrole ${result.sessionId} <player> <role>\` - Set roles\n` +
-                 `• \`/status ${result.sessionId}\` - Check status\n` +
-                 `• \`/close ${result.sessionId}\` - End session\n\n` +
-                 `⚠️ **Note:** For full in-game functionality (actual Hive connection),\n` +
-                 `you need to complete Xbox Live authentication setup.\n` +
-                 `See **SETUP.md** for detailed instructions.`
-      });
+      if (interaction.deferred) {
+        await interaction.editReply({
+          content: `✅ **Custom Server Session Created!**\n\n` +
+                   `**Session ID:** \`${result.sessionId}\`\n` +
+                   `**Username:** ${username}\n` +
+                   `**Map:** ${map}\n` +
+                   `**Private:** ${isPrivate ? 'Yes' : 'No'}\n` +
+                   `**Status:** ${result.status}\n\n` +
+                   `Use this session ID with other commands:\n` +
+                   `• \`/settings\` - View/modify game settings\n` +
+                   `• \`/invite\` - Invite players\n` +
+                   `• \`/setrole\` - Set roles/teams\n` +
+                   `• \`/status\` - Check status\n` +
+                   `• \`/close\` - End session\n\n` +
+                   `🎮 **Successfully connected to Hive!**`
+        });
+      }
 
     } catch (error) {
       console.error('Error creating custom server:', error);
+      
       try {
+        const errorMessage = {
+          content: `❌ **Connection Failed**\n\n` +
+                   `Error: ${error.message}\n\n` +
+                   `**Possible reasons:**\n` +
+                   `• Hive servers may only accept official Minecraft clients\n` +
+                   `• Your network or ISP may be blocking the connection\n` +
+                   `• The bot's authentication may not be fully supported\n\n` +
+                   `**What you can do:**\n` +
+                   `• Try running this bot from a different network\n` +
+                   `• Check if you can connect to Hive from Minecraft directly\n` +
+                   `• Note: Hive may restrict bot/automation connections`
+        };
+        
         if (interaction.deferred) {
-          await interaction.editReply({
-            content: `❌ **Error creating custom server:** ${error.message}\n\n` +
-                     `This might be due to:\n` +
-                     `• Xbox Live authentication not configured\n` +
-                     `• Network connection issues\n` +
-                     `• Hive server unavailable\n\n` +
-                     `Please check **SETUP.md** for configuration instructions.`
-          });
-        } else {
-          await interaction.reply({
-            content: `❌ **Error creating custom server:** ${error.message}`,
-            ephemeral: true
-          });
+          await interaction.editReply(errorMessage);
+        } else if (!interaction.replied) {
+          await interaction.reply(errorMessage);
         }
       } catch (replyError) {
-        console.error('Could not send error message to Discord:', replyError);
+        console.error('Could not send error message to Discord:', replyError.message);
       }
     }
   },
