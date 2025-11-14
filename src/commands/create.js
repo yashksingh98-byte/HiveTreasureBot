@@ -30,16 +30,15 @@ export default {
         .setRequired(false)),
 
   async execute(interaction) {
-    if (interaction.deferred || interaction.replied) {
-      console.log('Interaction already handled, skipping...');
-      return;
-    }
-
     try {
-      await interaction.deferReply();
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+      }
     } catch (error) {
-      console.error('Failed to defer reply:', error);
-      return;
+      if (error.code !== 40060) {
+        console.error('Failed to defer reply:', error);
+        return;
+      }
     }
 
     const username = interaction.options.getString('username');
