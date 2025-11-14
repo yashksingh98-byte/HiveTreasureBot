@@ -30,6 +30,11 @@ export default {
         .setRequired(false)),
 
   async execute(interaction) {
+    if (interaction.deferred || interaction.replied) {
+      console.log('Interaction already handled, skipping...');
+      return;
+    }
+
     try {
       await interaction.deferReply();
     } catch (error) {

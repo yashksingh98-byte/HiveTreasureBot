@@ -29,6 +29,10 @@ client.once('ready', () => {
   console.log('🎮 Ready to manage Hive Treasure Wars custom servers!');
 });
 
+client.on('error', error => {
+  console.error('Discord client error:', error);
+});
+
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
