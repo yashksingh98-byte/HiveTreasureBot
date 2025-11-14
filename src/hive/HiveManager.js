@@ -11,6 +11,7 @@ class HiveManagerSingleton {
     const sessionId = `${username}_${Date.now()}`;
     
     console.log(`🔄 Creating real Hive connection for ${username}...`);
+    console.log(`📱 Watch this terminal for Xbox Live authentication link!`);
 
     try {
       const client = bedrock.createClient({
@@ -20,6 +21,16 @@ class HiveManagerSingleton {
         offline: false,
         authTitle: '00000000441cc96b',
         profilesFolder: './auth_cache',
+        onMsaCode: (data) => {
+          console.log('\n🔐 ═══════════════════════════════════════════════════════');
+          console.log('📱 XBOX LIVE AUTHENTICATION REQUIRED');
+          console.log('═══════════════════════════════════════════════════════');
+          console.log(`\n1️⃣  Open this link in your browser:\n    ${data.verification_uri}`);
+          console.log(`\n2️⃣  Enter this code:\n    ${data.user_code}`);
+          console.log(`\n3️⃣  Sign in with your Microsoft/Xbox account`);
+          console.log(`\n⏱️  You have ${Math.floor(data.expires_in / 60)} minutes to complete this`);
+          console.log('\n═══════════════════════════════════════════════════════\n');
+        }
       });
 
       this.activeSessions.set(sessionId, {
