@@ -40,12 +40,18 @@ client.on('interactionCreate', async interaction => {
     await command.execute(interaction);
   } catch (error) {
     console.error('Command error:', error);
-    const errorMessage = { content: 'There was an error executing this command!', ephemeral: true };
+    const errorMessage = { content: 'There was an error executing this command!', flags: 64 };
     
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(errorMessage);
-    } else {
-      await interaction.reply(errorMessage);
+    try {
+      if (interaction.deferred) {
+        await interaction.editReply(errorMessage);
+      } else if (interaction.replied) {
+        await interaction.followUp(errorMessage);
+      } else {
+        await interaction.reply(errorMessage);
+      }
+    } catch (followUpError) {
+      console.error('Error sending error message:', followUpError);
     }
   }
 });

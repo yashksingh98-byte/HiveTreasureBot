@@ -30,7 +30,12 @@ export default {
         .setRequired(false)),
 
   async execute(interaction) {
-    await interaction.deferReply();
+    try {
+      await interaction.deferReply();
+    } catch (error) {
+      console.error('Failed to defer reply:', error);
+      return;
+    }
 
     const username = interaction.options.getString('username');
     const map = interaction.options.getString('map') || 'random';
