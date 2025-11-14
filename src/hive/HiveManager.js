@@ -1,13 +1,30 @@
 import bedrock from 'bedrock-protocol';
 
-export class HiveManager {
+class HiveManagerSingleton {
   constructor() {
     this.activeSessions = new Map();
     this.hiveServerAddress = 'geo.hivebedrock.network';
     this.hiveServerPort = 19132;
   }
 
-  async createCustomServer(username, xboxAuthToken, settings) {
+  async createCustomServer(username, xboxAuthToken, settings, demoMode = true) {
+    const sessionId = `${username}_${Date.now()}`;
+    
+    if (demoMode) {
+      this.activeSessions.set(sessionId, {
+        client: null,
+        settings: settings,
+        createdAt: new Date(),
+        players: [],
+        playerRoles: new Map(),
+        status: 'demo',
+        username: username
+      });
+      
+      console.log(`✅ Created demo session ${sessionId} for ${username}`);
+      return { sessionId, status: 'demo', mode: 'offline' };
+    }
+
     try {
       const client = bedrock.createClient({
         host: this.hiveServerAddress,
@@ -18,31 +35,55 @@ export class HiveManager {
         profilesFolder: './auth_cache',
       });
 
-      const sessionId = `${username}_${Date.now()}`;
-      
       this.activeSessions.set(sessionId, {
         client: client,
         settings: settings,
         createdAt: new Date(),
         players: [],
-        status: 'initializing'
+        playerRoles: new Map(),
+        status: 'connecting',
+        username: username
       });
 
       return new Promise((resolve, reject) => {
+        const connectionTimeout = setTimeout(() => {
+          const session = this.activeSessions.get(sessionId);
+          if (session && session.status === 'connecting') {
+            console.log(`⏱️ Connection timeout for session ${sessionId}`);
+            if (client) {
+              try {
+                client.disconnect();
+              } catch (e) {
+                console.error('Error disconnecting client:', e);
+              }
+            }
+            this.activeSessions.delete(sessionId);
+            reject(new Error('Connection timeout - Xbox Live authentication may be required. See SETUP.md'));
+          }
+        }, 30000);
+
         client.on('spawn', () => {
+          clearTimeout(connectionTimeout);
           console.log(`✅ Connected to Hive as ${username}`);
-          this.activeSessions.get(sessionId).status = 'connected';
+          const session = this.activeSessions.get(sessionId);
+          if (session) {
+            session.status = 'connected';
+          }
           
           setTimeout(() => {
             this.navigateToCustomGames(client, sessionId, settings);
           }, 2000);
           
-          resolve({ sessionId, status: 'connected' });
+          resolve({ sessionId, status: 'connected', mode: 'live' });
         });
 
         client.on('disconnect', (packet) => {
+          clearTimeout(connectionTimeout);
           console.log('Disconnected:', packet.message);
-          this.activeSessions.get(sessionId).status = 'disconnected';
+          const session = this.activeSessions.get(sessionId);
+          if (session) {
+            session.status = 'disconnected';
+          }
         });
 
         client.on('text', (packet) => {
@@ -50,14 +91,21 @@ export class HiveManager {
           this.handleChatMessage(sessionId, packet);
         });
 
-        setTimeout(() => {
-          if (!this.activeSessions.get(sessionId) || this.activeSessions.get(sessionId).status === 'initializing') {
-            reject(new Error('Connection timeout'));
+        client.on('error', (error) => {
+          clearTimeout(connectionTimeout);
+          console.error('Client error:', error);
+          if (client) {
+            try {
+              client.disconnect();
+            } catch (e) {}
           }
-        }, 30000);
+          this.activeSessions.delete(sessionId);
+          reject(new Error(`Connection error: ${error.message}`));
+        });
       });
     } catch (error) {
       console.error('Error creating custom server:', error);
+      this.activeSessions.delete(sessionId);
       throw error;
     }
   }
@@ -103,7 +151,7 @@ export class HiveManager {
     return { success: true, players: session.players };
   }
 
-  async setPlayerRole(sessionId, playerName, role) {
+  async setPlayerRole(sessionId, playerName, role, team = null) {
     const session = this.activeSessions.get(sessionId);
     if (!session) {
       throw new Error('Session not found');
@@ -113,10 +161,15 @@ export class HiveManager {
       session.playerRoles = new Map();
     }
 
-    session.playerRoles.set(playerName, role);
-    console.log(`Set ${playerName} role to ${role} in session ${sessionId}`);
+    const playerData = { role };
+    if (team) {
+      playerData.team = team;
+    }
+
+    session.playerRoles.set(playerName, playerData);
+    console.log(`Set ${playerName} role to ${role}${team ? ` on team ${team}` : ''} in session ${sessionId}`);
     
-    return { success: true, role };
+    return { success: true, role, team };
   }
 
   handleChatMessage(sessionId, packet) {
@@ -350,3 +403,5 @@ export const TreasureWarsSettings = {
     default: false
   }
 };
+
+export const hiveManager = new HiveManagerSingleton();

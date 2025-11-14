@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
+import { hiveManager } from '../hive/HiveManager.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -17,15 +18,20 @@ export default {
     const sessionId = interaction.options.getString('session_id');
     const playerName = interaction.options.getString('player');
 
-    await interaction.reply({
-      content: `📨 Inviting **${playerName}** to session \`${sessionId}\`...\n\n` +
-               `⚠️ Full functionality requires Bedrock Protocol setup.\n` +
-               `See SETUP.md for configuration instructions.\n\n` +
-               `Once configured, this will:\n` +
-               `✅ Send in-game invite to ${playerName}\n` +
-               `✅ Add them to the player list\n` +
-               `✅ Allow them to join your custom server`,
-      ephemeral: true
-    });
+    try {
+      const result = await hiveManager.invitePlayer(sessionId, playerName);
+      
+      await interaction.reply({
+        content: `✅ Invited **${playerName}** to session \`${sessionId}\`\n` +
+                 `**Current Players:** ${result.players.join(', ') || 'None yet'}\n\n` +
+                 `⚠️ Note: Full in-game invites require Bedrock Protocol setup (see SETUP.md)`,
+        ephemeral: true
+      });
+    } catch (error) {
+      await interaction.reply({
+        content: `❌ Error: ${error.message}`,
+        ephemeral: true
+      });
+    }
   },
 };

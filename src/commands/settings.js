@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
-import { TreasureWarsSettings } from '../hive/HiveManager.js';
+import { TreasureWarsSettings, hiveManager } from '../hive/HiveManager.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -144,10 +144,19 @@ export default {
       return;
     }
 
-    await interaction.reply({
-      content: `✅ Setting **${setting.name}** updated to **${value}** for session \`${sessionId}\`\n\n` +
-               `⚠️ Note: Full functionality requires Bedrock Protocol setup. See SETUP.md`,
-      ephemeral: true
-    });
+    try {
+      const updatedSettings = await hiveManager.applySettings(sessionId, { [settingKey.toLowerCase()]: value });
+      
+      await interaction.reply({
+        content: `✅ Setting **${setting.name}** updated to **${value}** for session \`${sessionId}\`\n\n` +
+                 `⚠️ Note: In-game settings require Bedrock Protocol setup (see SETUP.md)`,
+        ephemeral: true
+      });
+    } catch (error) {
+      await interaction.reply({
+        content: `❌ Error: ${error.message}`,
+        ephemeral: true
+      });
+    }
   },
 };

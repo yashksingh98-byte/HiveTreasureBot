@@ -1,7 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { HiveManager } from '../hive/HiveManager.js';
-
-const hiveManager = new HiveManager();
+import { hiveManager } from '../hive/HiveManager.js';
 
 export default {
   data: new SlashCommandBuilder()

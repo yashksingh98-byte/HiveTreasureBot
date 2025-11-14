@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
+import { hiveManager } from '../hive/HiveManager.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -40,18 +41,27 @@ export default {
     const role = interaction.options.getString('role');
     const team = interaction.options.getString('team');
 
-    let message = `✅ Updated **${playerName}** in session \`${sessionId}\`:\n` +
-                  `**Role:** ${role}`;
-    
-    if (team) {
-      message += `\n**Team:** ${team}`;
+    try {
+      const result = await hiveManager.setPlayerRole(sessionId, playerName, role, team);
+      
+      let message = `✅ Updated **${playerName}** in session \`${sessionId}\`:\n` +
+                    `**Role:** ${role}`;
+      
+      if (team) {
+        message += `\n**Team:** ${team}`;
+      }
+
+      message += `\n\n⚠️ Note: In-game role changes require Bedrock Protocol setup (see SETUP.md)`;
+
+      await interaction.reply({
+        content: message,
+        ephemeral: true
+      });
+    } catch (error) {
+      await interaction.reply({
+        content: `❌ Error: ${error.message}`,
+        ephemeral: true
+      });
     }
-
-    message += `\n\n⚠️ Full functionality requires Bedrock Protocol setup. See SETUP.md`;
-
-    await interaction.reply({
-      content: message,
-      ephemeral: true
-    });
   },
 };
