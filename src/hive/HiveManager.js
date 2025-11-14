@@ -7,23 +7,10 @@ class HiveManagerSingleton {
     this.hiveServerPort = 19132;
   }
 
-  async createCustomServer(username, xboxAuthToken, settings, demoMode = true) {
+  async createCustomServer(username, xboxAuthToken, settings, demoMode = false) {
     const sessionId = `${username}_${Date.now()}`;
     
-    if (demoMode) {
-      this.activeSessions.set(sessionId, {
-        client: null,
-        settings: settings,
-        createdAt: new Date(),
-        players: [],
-        playerRoles: new Map(),
-        status: 'demo',
-        username: username
-      });
-      
-      console.log(`✅ Created demo session ${sessionId} for ${username}`);
-      return { sessionId, status: 'demo', mode: 'offline' };
-    }
+    console.log(`🔄 Creating real Hive connection for ${username}...`);
 
     try {
       const client = bedrock.createClient({

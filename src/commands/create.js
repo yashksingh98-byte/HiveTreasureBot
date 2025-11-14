@@ -78,7 +78,7 @@ export default {
     };
 
     try {
-      const result = await hiveManager.createCustomServer(username, null, defaultSettings);
+      const result = await hiveManager.createCustomServer(username, null, defaultSettings, false);
       
       await interaction.editReply({
         content: `✅ **Custom Server Session Created!**\n\n` +
