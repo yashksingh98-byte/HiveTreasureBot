@@ -58,9 +58,19 @@ class HiveManagerSingleton {
               }
             }
             this.activeSessions.delete(sessionId);
-            reject(new Error('Connection timeout - Xbox Live authentication may be required. See SETUP.md'));
+            reject(new Error('Connection timeout - Could not connect to Hive server. This may be a network issue or server unavailability.'));
           }
-        }, 30000);
+        }, 60000);
+        
+        client.on('join', () => {
+          clearTimeout(connectionTimeout);
+          console.log(`✅ Joined Hive server as ${username}`);
+          const session = this.activeSessions.get(sessionId);
+          if (session) {
+            session.status = 'connected';
+          }
+          resolve({ sessionId, status: 'connected', mode: 'live' });
+        });
 
         client.on('spawn', () => {
           clearTimeout(connectionTimeout);

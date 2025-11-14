@@ -104,14 +104,25 @@ export default {
 
     } catch (error) {
       console.error('Error creating custom server:', error);
-      await interaction.editReply({
-        content: `❌ **Error creating custom server:** ${error.message}\n\n` +
-                 `This might be due to:\n` +
-                 `• Xbox Live authentication not configured\n` +
-                 `• Network connection issues\n` +
-                 `• Hive server unavailable\n\n` +
-                 `Please check **SETUP.md** for configuration instructions.`
-      });
+      try {
+        if (interaction.deferred) {
+          await interaction.editReply({
+            content: `❌ **Error creating custom server:** ${error.message}\n\n` +
+                     `This might be due to:\n` +
+                     `• Xbox Live authentication not configured\n` +
+                     `• Network connection issues\n` +
+                     `• Hive server unavailable\n\n` +
+                     `Please check **SETUP.md** for configuration instructions.`
+          });
+        } else {
+          await interaction.reply({
+            content: `❌ **Error creating custom server:** ${error.message}`,
+            ephemeral: true
+          });
+        }
+      } catch (replyError) {
+        console.error('Could not send error message to Discord:', replyError);
+      }
     }
   },
 };
