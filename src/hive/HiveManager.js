@@ -20,6 +20,8 @@ class HiveManagerSingleton {
         username: username,
         offline: false,
         authTitle: '00000000441cc96b',
+        flow: 'live',
+        deviceType: 'Nintendo',
         profilesFolder: './auth_cache',
         onMsaCode: (data) => {
           console.log('\n🔐 ═══════════════════════════════════════════════════════');
