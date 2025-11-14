@@ -3,7 +3,7 @@ import bedrock from 'bedrock-protocol';
 class HiveManagerSingleton {
   constructor() {
     this.activeSessions = new Map();
-    this.hiveServerAddress = 'geo.hivebedrock.network';
+    this.hiveServerAddress = 'zeqa.net';
     this.hiveServerPort = 19132;
   }
 
